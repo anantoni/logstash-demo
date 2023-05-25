@@ -1,0 +1,80 @@
+# filebeat.autodiscover:
+#   providers:
+#     - type: docker
+#       templates:
+#         - condition:
+#             equals:
+#               docker.container.name: "nifi"
+#           config:
+#             - type: container
+#               paths:
+#                 - /var/lib/docker/containers/${data.docker.container.id}/*.log
+#               exclude_lines: ["^\\s+[\\-`('.|_]"]  # drop asciiart lines
+
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      templates:
+        - condition.or:
+            # - equals.docker.container.name: "nifi"
+            - equals.docker.container.labels.filebeat: "true"
+            # - equals.docker.container.labels.com_docker_compose_project: "other-services"
+            # - equals.docker.container.labels.com_docker_compose_project: "nifi"
+            # - equals.docker.container.labels.com_docker_compose_project: "elastic-stack"
+            # - and.not.equals.docker.container.labels.com_docker_compose_project: nifi"
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+              exclude_lines: ["^\\s+[\\-`('.|_]"]  # drop asciiart lines
+
+processors:
+  - rename:
+      fields:
+        - from: "docker.container.labels.com_docker_compose_project"
+          to: "stack"
+        - from: "docker.container.labels.com_docker_compose_service"
+          to: "service"
+      ignore_missing: true
+  - drop_fields:
+      fields: ["docker",
+               "agent",
+               "tags",
+               "input",
+               "stream",
+               "host",
+               "log.offset",
+               "event",
+               "event.original",
+               "container.image"]
+      ignore_missing: true
+
+#   parsers:
+#     - multiline:
+#         type: pattern
+#         pattern: '^[[:space:]]+(at|\.{3})[[:space:]]+\b|^Caused by:'
+#         negate: false
+#         match: after
+#     - multiline:
+#         type: pattern
+#         pattern: '\\$'
+#         negate: false
+#         match: before
+setup.ilm.enabled: true
+setup.ilm.policy_file: filebeat-policy.json
+
+setup.kibana:
+  host: "kibana:5602"
+
+setup.dashboards.enabled: true
+
+output.logstash:
+  hosts: ["logstash:5044"]
+
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0640

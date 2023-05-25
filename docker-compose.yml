@@ -1,0 +1,142 @@
+version: '3.8'
+
+networks:
+  elastic:    # name: host
+
+services:
+  elasticsearch:
+    labels:
+      filebeat: true
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.7.0
+    hostname: elasticsearch
+    container_name: elasticsearch-prevail
+    networks: 
+      - elastic
+    ports: 
+      - '9200:9200'
+      - '9300:9300'
+    environment:
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - xpack.license.self_generated.type=basic
+      - network.host=0.0.0.0 
+      - discovery.type=single-node
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./config/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml    
+    healthcheck:
+      test: curl -u elastic:pass1234 -s -f elasticsearch:9200/_cat/health >/dev/null || exit 1
+      interval: 10s
+      timeout: 10s
+      retries: 120
+
+  kibana:
+    labels:
+      filebeat: false
+    image: docker.elastic.co/kibana/kibana:8.7.0
+    hostname: kibana
+    container_name: kibana-prevail
+    environment:
+      - 'ELASTICSEARCH_HOSTS=["http://elasticsearch:9200"]'
+      - "SERVER_NAME=localhost"
+      - "XPACK_MONITORING_ENABLED=false"
+      - "LS_JAVA_OPTS=-Xmx256m -Xms256m"
+      - discovery.type=single-node
+    networks: 
+      - elastic
+    ports: 
+      - '5602:5602'
+    # configs:
+    #   - source: ki_config
+    #     target: /usr/share/kibana/config/kibana.yml
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ./config/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml
+    healthcheck:
+      test: curl -s -I http://localhost:5602 | grep -q 'HTTP/1.1 302 Found'
+      interval: 10s
+      timeout: 10s
+      retries: 120
+
+  logstash:
+    labels:
+      filebeat: true
+    image: docker.elastic.co/logstash/logstash:8.7.0
+    hostname: logstash
+    container_name: logstash-prevail
+    environment:
+      - XPACK_MONITORING_ELASTICSEARCH_URL=http://elasticsearch:9200
+      - discovery.type=single-node
+    networks: 
+      - elastic
+    ports: 
+        - '5044:5044'
+        - '5000:5000'
+        - '9600:9600'
+    # configs:
+    #     - source: ls_config
+    #       target: /usr/share/logstash/pipeline/logstash.conf
+    volumes:
+      - ./config/logstash/logstash.yml:/usr/share/logstash/config/logstash.yml
+      - ./config/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    depends_on:
+        elasticsearch:
+          condition: service_healthy
+    healthcheck:
+      test: curl -XGET 'localhost:9600/?pretty'
+      interval: 10s
+      timeout: 10s
+      retries: 120
+
+  elasticsearch-mapping-init:
+    build: elasticsearch-mapping-init
+    container_name: elasticsearch-mapping-init
+    networks: 
+      - elastic
+    links:
+      - elasticsearch
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+volumes:
+  filebeat:
+  # filebeat:
+  #   labels:
+  #     filebeat: true
+  #   image: docker.elastic.co/beats/filebeat:8.7.0
+  #   hostname: filebeat
+  #   container_name: filebeat
+  #   user: root
+  #   command: 
+  #     - -e 
+  #     - -strict.perms=false
+  #   networks:
+  #     - elastic
+  #   volumes:
+  #     - ./config/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+  #     - ./config/filebeat/filebeat-policy.json:/usr/share/filebeat/filebeat-policy.json:ro
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro
+  #     # This is needed for filebeat to load the container log paths as specified in filebeat.yml
+  #     - /var/lib/docker/containers/:/var/lib/docker/containers/:ro
+  #     # This is needed for filebeat to load logs for system and auth modules
+  #     - /var/log/:/var/log/:ro
+  #     - filebeat:/usr/share/filebeat/data
+
+  #   deploy:
+  #     mode: global 
+  #   depends_on:
+  #       elasticsearch:
+  #         condition: service_healthy
+  #       kibana:
+  #         condition: service_healthy
+  #       logstash:
+  #         condition: service_healthy
+

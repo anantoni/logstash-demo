@@ -1,0 +1,34 @@
+network.host: 0.0.0.0
+
+# #----------------------- BEGIN SECURITY AUTO CONFIGURATION -----------------------
+# #
+# # The following settings, TLS certificates, and keys have been automatically      
+# # generated to configure Elasticsearch security features on 04-04-2023 14:03:49
+# #
+# # --------------------------------------------------------------------------------
+logger.org.elasticsearch.discovery: INFO
+logger.org.elasticsearch.transport: INFO
+logger.org.elasticsearch.http: INFO
+
+# logger.org.elasticsearch.discovery: WARN
+# logger.org.elasticsearch.transport: WARN
+# logger.org.elasticsearch.http: WARN
+
+# # Enable security features
+#xpack.license.self_generated.type: basic
+#xpack.security.enabled: true
+
+# xpack.security.enrollment.enabled: false
+
+# # Enable encryption for HTTP API client connections, such as Kibana, Logstash, and Agents
+# xpack.security.http.ssl:
+#   enabled: false
+#   keystore.path: certs/http.p12
+
+# # Enable encryption and mutual authentication between cluster nodes
+# xpack.security.transport.ssl:
+#   enabled: false
+#   verification_mode: certificate
+#   keystore.path: certs/transport.p12
+#   truststore.path: certs/transport.p12
+# #----------------------- END SECURITY AUTO CONFIGURATION -------------------------
