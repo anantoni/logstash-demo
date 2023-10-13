@@ -1,0 +1,30 @@
+{
+    "index_patterns": ["prevail-logs-*"],
+    "template": {
+      "settings": {
+        "number_of_shards": 1,
+        "number_of_replicas": 0,
+        "index.lifecycle.rollover_alias": "prevail-logs"
+      },
+      "mappings": {
+        "properties": {
+          "message": {
+            "type": "text"
+          },
+          "logLevel": {
+            "type": "text"
+          },
+          "systemIdentifier": {
+            "type": "keyword"
+          },
+          "systemComponent": {
+            "type": "keyword"
+          },
+          "logTimestamp": {
+            "type": "date",
+            "format":"epoch_millis"
+          }
+        }
+      }
+    }
+  }

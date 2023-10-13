@@ -13,8 +13,8 @@ services:
     networks: 
       - elastic
     ports: 
-      - '9200:9200'
-      - '9300:9300'
+      - '14997:9200'
+      - '14998:9300'
     environment:
       - xpack.security.enabled=false
       - xpack.security.enrollment.enabled=false
@@ -27,8 +27,10 @@ services:
       memlock:
         soft: -1
         hard: -1
+    restart: always
     volumes:
-      - ./config/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml    
+      - ./config/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml 
+      - esdata:/usr/share/elasticsearch/data   
     healthcheck:
       test: curl -u elastic:pass1234 -s -f elasticsearch:9200/_cat/health >/dev/null || exit 1
       interval: 10s
@@ -50,13 +52,14 @@ services:
     networks: 
       - elastic
     ports: 
-      - '5602:5602'
+      - '14999:5602'
     # configs:
     #   - source: ki_config
     #     target: /usr/share/kibana/config/kibana.yml
     depends_on:
       elasticsearch:
         condition: service_healthy
+    restart: always
     volumes:
       - ./config/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml
     healthcheck:
@@ -77,9 +80,10 @@ services:
     networks: 
       - elastic
     ports: 
-        - '5044:5044'
-        - '5000:5000'
-        - '9600:9600'
+        - '15000:5044'
+        - '15001:5000'
+        - '15002:5001'
+        - '15003:9600'
     # configs:
     #     - source: ls_config
     #       target: /usr/share/logstash/pipeline/logstash.conf
@@ -89,6 +93,7 @@ services:
     depends_on:
         elasticsearch:
           condition: service_healthy
+    restart: always
     healthcheck:
       test: curl -XGET 'localhost:9600/?pretty'
       interval: 10s
@@ -105,38 +110,3 @@ services:
     depends_on:
       elasticsearch:
         condition: service_healthy
-
-volumes:
-  filebeat:
-  # filebeat:
-  #   labels:
-  #     filebeat: true
-  #   image: docker.elastic.co/beats/filebeat:8.7.0
-  #   hostname: filebeat
-  #   container_name: filebeat
-  #   user: root
-  #   command: 
-  #     - -e 
-  #     - -strict.perms=false
-  #   networks:
-  #     - elastic
-  #   volumes:
-  #     - ./config/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
-  #     - ./config/filebeat/filebeat-policy.json:/usr/share/filebeat/filebeat-policy.json:ro
-  #     - /var/run/docker.sock:/var/run/docker.sock:ro
-  #     # This is needed for filebeat to load the container log paths as specified in filebeat.yml
-  #     - /var/lib/docker/containers/:/var/lib/docker/containers/:ro
-  #     # This is needed for filebeat to load logs for system and auth modules
-  #     - /var/log/:/var/log/:ro
-  #     - filebeat:/usr/share/filebeat/data
-
-  #   deploy:
-  #     mode: global 
-  #   depends_on:
-  #       elasticsearch:
-  #         condition: service_healthy
-  #       kibana:
-  #         condition: service_healthy
-  #       logstash:
-  #         condition: service_healthy
-

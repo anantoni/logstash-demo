@@ -1,0 +1,27 @@
+{
+    "aliases": {
+      "prevail-logs": {
+        "is_write_index": true
+      }
+    },
+    "mappings": {
+        "properties": {
+          "message": {
+            "type": "text"
+          },
+          "logLevel": {
+            "type": "text"
+          },
+          "systemIdentifier": {
+            "type": "keyword"
+          },
+          "systemComponent": {
+            "type": "keyword"
+          },
+          "logTimestamp": {
+            "type": "date",
+            "format":"epoch_millis"
+          }
+        }
+      }
+  }
